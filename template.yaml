@@ -6,7 +6,7 @@ Resources:
   TempFunction:
     Type: AWS::Serverless::Function
     Properties:
-      Handler: index.handler
+      Handler: index.lambda_handler
       Runtime: python3.7
       CodeUri: ./
       Role: arn:aws:iam::581209585450:role/LambdaAuroraRrole
