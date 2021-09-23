@@ -1,0 +1,18 @@
+
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Outputs the value from database
+Resources:
+  TempFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: index.handler
+      Runtime: python3.7
+      CodeUri: ./
+      Role: arn:aws:iam::581209585450:role/LambdaAuroraRrole
+      Events:
+        MyTempApi:
+          Type: Api
+          Properties:
+            Path: /TempResource
+            Method: GET
