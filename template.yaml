@@ -1,18 +1,39 @@
-
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
-Description: Outputs the value from database
+Description: AWS SAM template
 Resources:
-  TempFunction:
-    Type: AWS::Serverless::Function
+  ApiGatewayApi:
+    Type: AWS::Serverless::Api
     Properties:
-      Handler: index.lambda_handler
-      Runtime: python3.7
-      CodeUri: ./
+      StageName: prod
+      Cors: "'*'"
+      Auth:
+        Authorizers:
+          MyCognitoAuthorizer:
+            UserPoolArn: arn:aws:cognito-idp:us-east-1:581209585450:userpool/us-east-1_uCuKaMzo6
+            Identity:
+              Header: Authorization
+
+  ApiFunction:
+    Type: AWS::Serverless::Function 
+    Properties:
+      CodeUri: /Users/smmuthur/sam-app/hello_world
+      Handler: app.lambda_handler
       Role: arn:aws:iam::581209585450:role/LambdaAuroraRrole
+      Runtime: python3.7
+      VpcConfig:
+        SubnetIds:
+          - subnet-0b90441611c4b9a3e
+          - subnet-0415d65a0dade3f67 
+        SecurityGroupIds:
+          - sg-0af396943d01e2851
       Events:
-        MyTempApi:
-          Type: Api
+        ApiEvent:
+          Type: Api 
           Properties:
-            Path: /TempResource
-            Method: GET
+            Path: /tempp
+            Method: get
+            Auth:
+              Authorizer: MyCognitoAuthorizer
+            RestApiId:
+              Ref: ApiGatewayApi

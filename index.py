@@ -3,13 +3,18 @@ import boto3
 
 rds_client = boto3.client('rds-data')
 
-database_name = 'serverlessdemo'
-db_cluster_arn = 'arn:aws:rds:us-east-1:581209585450:cluster:auroraserverlessdemo'
-db_credentials_secrets_store_arn = 'arn:aws:secretsmanager:us-east-1:581209585450:secret:rds-db-credentials/cluster-CSP7J3NNAUUZEEBRPGTUOFR3A4/admin-AQ8Cdz'
+database_name = 'rds_db'
+db_cluster_arn = 'arn:aws:rds:us-east-1:581209585450:cluster:rds-cluster'
+db_credentials_secrets_store_arn = 'arn:aws:secretsmanager:us-east-1:581209585450:secret:dev-AuroraUserSecret-FwSUkt'
 
 def lambda_handler(event, context):
     response = execute_statement('SELECT Temperature from Temperature WHERE LocationId=5');
-    return response['records'][0][0]['longValue'];
+    return {
+            "isBase64Encoded": False,
+            "statusCode": 200,
+            "body": json.dumps(response['records'][0][0]['longValue']),
+            "headers": {"Access-Control-Allow-Origin": "*"}
+        }
 
     
 
