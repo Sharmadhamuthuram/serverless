@@ -17,8 +17,8 @@ Resources:
   ApiFunction:
     Type: AWS::Serverless::Function 
     Properties:
-      CodeUri: /Users/smmuthur/sam-app/hello_world
-      Handler: app.lambda_handler
+      CodeUri: ./
+      Handler: index.lambda_handler
       Role: arn:aws:iam::581209585450:role/LambdaAuroraRrole
       Runtime: python3.7
       VpcConfig:
