@@ -1,5 +1,6 @@
 import json
 import boto3
+import os
 
 rds_client = boto3.client('rds-data')
 
