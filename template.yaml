@@ -68,27 +68,28 @@ Resources:
         - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
 
   RDSEndpoint:
-  Type: 'AWS::EC2::VPCEndpoint'
-  Properties:
-    PolicyDocument:
-      Version: 2012-10-17
-      Statement:
-        - Effect: Allow
-          Principal:
-            AWS:
-              - !GetAtt LambdaExecutionRole.Arn
-          Action:
-            - 'rds-data:ExecuteStatement'
-          Resource:
-            - !Sub
+    Type: 'AWS::EC2::VPCEndpoint'
+    Properties:
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS:
+                - !GetAtt LambdaExecutionRole.Arn
+            Action:
+              - 'rds-data:ExecuteStatement'
+            Resource:
+              - !Sub
                 - 'arn:aws:rds:us-east-1:581209585450:cluster:${clustername}'
                 - clustername:
                     Fn::ImportValue: "Clustername"
-    ServiceName: 'com.amazonaws.us-east-1.rds-data'
-    PrivateDnsEnabled: true
-    VpcId: vpc-2eef3b54
-    SubnetIds:
+      ServiceName: 'com.amazonaws.us-east-1.rds-data'
+      VpcEndpointType: Interface
+      PrivateDnsEnabled: true
+      VpcId: vpc-2eef3b54
+      SubnetIds:
         - subnet-0b90441611c4b9a3e
         - subnet-0415d65a0dade3f67
-    SecurityGroupIds:
+      SecurityGroupIds:
         - sg-b34a8afe
