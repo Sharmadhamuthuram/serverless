@@ -3,9 +3,9 @@ import boto3
 
 rds_client = boto3.client('rds-data')
 
-database_name = 'rds_db'
-db_cluster_arn = 'arn:aws:rds:us-east-1:581209585450:cluster:rds-cluster'
-db_credentials_secrets_store_arn = 'arn:aws:secretsmanager:us-east-1:581209585450:secret:dev-AuroraUserSecret-FwSUkt'
+database_name = os.environ["database_name"]
+db_cluster_arn = os.environ["db_cluster_arn"]
+db_credentials_secrets_store_arn = os.environ["db_credentials_secrets_store_arn"]
 
 def lambda_handler(event, context):
     response = execute_statement('SELECT Temperature from Temperature WHERE LocationId=5');

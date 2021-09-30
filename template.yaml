@@ -10,7 +10,7 @@ Resources:
       Auth:
         Authorizers:
           MyCognitoAuthorizer:
-            UserPoolArn: arn:aws:cognito-idp:us-east-1:581209585450:userpool/us-east-1_uCuKaMzo6
+            UserPoolArn: !ImportValue 'CognitoArn'
             Identity:
               Header: Authorization
 
@@ -19,8 +19,18 @@ Resources:
     Properties:
       CodeUri: ./
       Handler: index.lambda_handler
-      Role: arn:aws:iam::581209585450:role/LambdaAuroraRrole
+      Role: !GetAtt LambdaExecutionRole.Arn
       Runtime: python3.7
+      Tracing: Active
+      Environment:
+        Variables:
+          database_name: !ImportValue 'DBname'
+          db_cluster_arn: 
+            !Sub 
+                - 'arn:aws:rds:us-east-1:581209585450:cluster:${clustername}'
+                - clustername:
+                    Fn::ImportValue: "Clustername"
+          db_credentials_secrets_store_arn: !ImportValue 'SecretsArn'
       VpcConfig:
         SubnetIds:
           - subnet-0b90441611c4b9a3e
@@ -37,3 +47,22 @@ Resources:
               Authorizer: MyCognitoAuthorizer
             RestApiId:
               Ref: ApiGatewayApi
+
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/SecretsManagerReadWrite
+        - arn:aws:iam::aws:policy/AWSXRayDaemonWriteAccess
+        - arn:aws:iam::aws:policy/AmazonRDSDataFullAccess
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
