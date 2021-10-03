@@ -1,8 +1,72 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: AWS SAM template
+Parameters:
+  AppName:
+    Description: "Application Name"
+    Type: String
+    Default: myapp2
+  EnvType:
+    Description: "Environment type (eg, dev, qa, prod)"
+    Type: String
+    Default: dev
+  EnvType:
+    Description: "Environment type (eg, dev, qa, prod)"
+    Type: String
+    Default: dev
+  DBClusterName:
+    Description: "Aurora RDS cluster name"
+    Type: String
+    Default: rds-cluster2
+  DatabaseName:
+    Description: "Aurora RDS database name"
+    Type: String
+    Default: rds_db2
+  DBMasterUserName:
+    AllowedPattern: "[a-zA-Z0-9_]+"
+    ConstraintDescription: must be between 1 to 16 alphanumeric characters.
+    Description: The database admin account user name, between 1 to 16 alphanumeric characters.
+    MaxLength: '16'
+    MinLength: '1'
+    Type: String
+    Default: admin
 Resources:
+  MyCognitoUserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      UserPoolName: MyAPICognitoUserPool2
+  
+  MyCognitoUserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      UserPoolId: !Ref MyCognitoUserPool
+      ClientName: CognitoUserPoolClientName
+      GenerateSecret: false
+      CallbackURLs: 
+        - !Sub
+          - https://${DistributionImport}/loggedin.html
+          - DistributionImport:
+                  Fn::ImportValue: "CFDomainName"
+      LogoutURLs: 
+        - !Sub
+          - https://${DistributionImport}/loggedout.html
+          - DistributionImport:
+                  Fn::ImportValue: "CFDomainName"
+      AllowedOAuthFlows:
+        - code
+        - implicit
+      AllowedOAuthFlowsUserPoolClient: true
+      AllowedOAuthScopes: 
+        - email
+        - openid
+  UserPoolDomain: 
+    Type: AWS::Cognito::UserPoolDomain 
+    Properties:
+      UserPoolId: !Ref MyCognitoUserPool
+      Domain: weather2
+
   ApiGatewayApi:
+    DependsOn: [MyCognitoUserPool]
     Type: AWS::Serverless::Api
     Properties:
       StageName: prod
@@ -10,11 +74,55 @@ Resources:
       Auth:
         Authorizers:
           MyCognitoAuthorizer:
-            UserPoolArn: !ImportValue 'CognitoArn'
+            UserPoolArn: !GetAtt MyCognitoUserPool.Arn
             Identity:
               Header: Authorization
 
+  DBSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: CloudFormation managed DB subnet group.
+      SubnetIds:
+        - subnet-0b90441611c4b9a3e
+        - subnet-0415d65a0dade3f67
+  DBSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: !Sub "${EnvType}-AuroraUserSecret2"
+      Description: RDS database auto-generated user password
+      GenerateSecretString:
+        SecretStringTemplate: !Sub '{"username": "${DBMasterUserName}"}'
+        GenerateStringKey: "password"
+        PasswordLength: 30
+        ExcludeCharacters: '"@/\'
+      Tags:
+        -
+          Key: AppName
+          Value: !Ref AppName
+  RDSCluster:
+    DependsOn: [DBSubnetGroup, DBSecret]
+    Type: AWS::RDS::DBCluster
+    Properties:
+      DBClusterIdentifier: !Ref DBClusterName
+      MasterUsername: !Join ['', ['{{resolve:secretsmanager:', !Ref DBSecret, ':SecretString:username}}' ]]
+      MasterUserPassword: !Join ['', ['{{resolve:secretsmanager:', !Ref DBSecret, ':SecretString:password}}' ]]
+      DatabaseName: !Ref DatabaseName
+      Engine: aurora
+      EngineMode: serverless
+      EngineVersion: 5.6.10a
+      EnableHttpEndpoint: true
+      ScalingConfiguration:
+        AutoPause: true
+        MaxCapacity: 4
+        MinCapacity: 1
+        SecondsUntilAutoPause: 900 # 15 min
+      DBSubnetGroupName:
+        Ref: DBSubnetGroup
+      VpcSecurityGroupIds: 
+        - sg-b34a8afe
+
   ApiFunction:
+    DependsOn: [RDSCluster, DBSecret, LambdaExecutionRole]
     Type: AWS::Serverless::Function 
     Properties:
       CodeUri: ./
@@ -24,13 +132,9 @@ Resources:
       Tracing: Active
       Environment:
         Variables:
-          database_name: !ImportValue 'DBname'
-          db_cluster_arn: 
-            !Sub 
-                - 'arn:aws:rds:us-east-1:581209585450:cluster:${clustername}'
-                - clustername:
-                    Fn::ImportValue: "Clustername"
-          db_credentials_secrets_store_arn: !ImportValue 'SecretsArn'
+          database_name: !Ref DatabaseName
+          db_cluster_arn: !Sub "arn:aws:rds:us-east-1:581209585450:cluster:${DBClusterName}"
+          db_credentials_secrets_store_arn: !Ref DBSecret
       VpcConfig:
         SubnetIds:
           - subnet-0b90441611c4b9a3e
@@ -68,6 +172,7 @@ Resources:
         - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
 
   RDSEndpoint:
+    DependsOn: [LambdaExecutionRole]
     Type: 'AWS::EC2::VPCEndpoint'
     Properties:
       PolicyDocument:
@@ -80,10 +185,7 @@ Resources:
             Action:
               - 'rds-data:ExecuteStatement'
             Resource:
-              - !Sub
-                - 'arn:aws:rds:us-east-1:581209585450:cluster:${clustername}'
-                - clustername:
-                    Fn::ImportValue: "Clustername"
+              - !Sub "arn:aws:rds:us-east-1:581209585450:cluster:${DBClusterName}"
       ServiceName: 'com.amazonaws.us-east-1.rds-data'
       VpcEndpointType: Interface
       PrivateDnsEnabled: true

@@ -9,7 +9,10 @@ db_cluster_arn = os.environ["db_cluster_arn"]
 db_credentials_secrets_store_arn = os.environ["db_credentials_secrets_store_arn"]
 
 def lambda_handler(event, context):
-    response = execute_statement('SELECT Temperature from Temperature WHERE LocationId=5');
+    city=event['queryStringParameters']['selectedcity'];
+    print (city)
+    
+    response = execute_statement("SELECT Temperature FROM Weather WHERE City='" + city + "'");
     return {
             "isBase64Encoded": False,
             "statusCode": 200,
