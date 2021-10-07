@@ -7,9 +7,11 @@ phases:
     commands:
         - npm install
         - export BUCKET=myserverlesscodepipelinebucket
-        - aws cloudformation package --template template.yaml --s3-bucket $BUCKET --output-template outputtemplate.yaml
+        - sam build --template template.yaml
+        - sam package --template-file .aws-sam/build/template.yaml --output-template-file deploy.yaml --s3-bucket $BUCKET
+        - sam deploy --template-file deploy.yaml --stack-name mysamstack61 --capabilities CAPABILITY_IAM --region us-east-1
 artifacts:
   type: zip
   files:
     - template.yaml
-    - outputtemplate.yaml
+    - deploy.yaml
