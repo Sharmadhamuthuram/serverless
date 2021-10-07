@@ -4,7 +4,7 @@ phases:
     commands:
         - export BUCKET=myserverlesscodepipelinebucket
         - sam package --template-file template.yaml --output-template-file deploy.yaml --s3-bucket $BUCKET
-        - sam deploy --template-file deploy.yaml --stack-name mysamstack61 --capabilities CAPABILITY_IAM --region us-east-1
+        - sam deploy --template-file deploy.yaml --stack-name mysamstack7 --capabilities CAPABILITY_IAM --region us-east-1 --role-arn arn:aws:iam::581209585450:role/myapp-cloudformation-role
 artifacts:
   type: zip
   files:
